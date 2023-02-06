@@ -8,7 +8,11 @@ A nginx proxymanager is in front and as hack to run cron the same nextcloud with
 ## Images
 
 nextcloud-proxymanager -> 'jc21/nginx-proxy-manager:latest'
+
 nextcloud-db -> mariadb
+
 nextcloud-redis -> redis
+
 nextcloud -> nextcloud
+
 cron -> nextcloud (with different entry point to make cron available)
