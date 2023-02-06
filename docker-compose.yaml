@@ -1,0 +1,89 @@
+version: '3'
+services:
+  nextcloud-proxymanager:
+    container_name: nextcloud-proxymanager
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    links:
+      - nextcloud
+    volumes:
+      - ./nextcloud/nginxproxy/data:/data
+      - ./nextcloud/nginxproxy/letsencrypt:/etc/letsencrypt
+  nextcloud-db:
+    container_name: nextcloud-db
+    image: mariadb
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW --innodb-file-per-table=1 --skip-innodb-read-only-compressed
+    volumes:
+      - ./nextcloud/db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${NEXTCLOUD_DB_NAME}
+      - MYSQL_USER=${NEXTCLOUD_SQL_USER}
+  nextcloud-redis:
+    container_name: nextcloud-redis
+    image: redis
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+  nextcloud:
+    container_name: nextcloud
+    image: nextcloud
+    restart: always
+
+    links:
+      - nextcloud-db
+      - nextcloud-redis
+    volumes:
+      - ./nextcloud/config:/var/www/html/config
+      - ./nextcloud/nextcloud-data:/var/www/html/data
+      - ./nextcloud/apps:/var/www/html/apps
+      - ./nextcloud/custom_apps:/var/www/html/custom_apps
+      - ./nextcloud/html:/var/www/html
+    environment:
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${NEXTCLOUD_DB_NAME}
+      - MYSQL_USER=${NEXTCLOUD_SQL_USER}
+      - MYSQL_HOST=nextcloud-db
+      - REDIS_HOST_PASSWORD=${REDIS_PASSWORD}
+      - TRUSTED_PROXIES=${MY_DOMAIN}
+      - OVERWRITECLIURL=https://${MY_DOMAIN}
+      - OVERWRITEPROTOCOL=https
+      - NEXTCLOUD_TRUSTED_DOMAINS=${MY_DOMAIN}
+      - OVERWRITEHOST=${MY_DOMAIN}
+    depends_on:
+      - nextcloud-db
+      - nextcloud-redis
+  cron:
+    container_name: nextcloud-cron
+    image: nextcloud
+    restart: always
+    links:
+      - nextcloud-db
+      - nextcloud-redis
+    volumes:
+       - ./nextcloud/config:/var/www/html/config
+       - ./nextcloud/nextcloud-data:/var/www/html/data
+       - ./nextcloud/apps:/var/www/html/apps
+       - ./nextcloud/custom_apps:/var/www/html/custom_apps
+       - ./nextcloud/html:/var/www/html
+    environment:
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${NEXTCLOUD_DB_NAME}
+      - MYSQL_USER=${NEXTCLOUD_SQL_USER}
+      - MYSQL_HOST=nextcloud-db
+      - REDIS_HOST_PASSWORD=${REDIS_PASSWORD}
+      - TRUSTED_PROXIES=${MY_DOMAIN}
+      - OVERWRITECLIURL=https://${MY_DOMAIN}
+      - OVERWRITEPROTOCOL=https
+      - NEXTCLOUD_TRUSTED_DOMAINS=${MY_DOMAIN}
+      - OVERWRITEHOST=${MY_DOMAIN}
+    entrypoint: /cron.sh
+    depends_on:
+      - nextcloud
+      - nextcloud-db
+      - nextcloud-redis
