@@ -1,4 +1,13 @@
 version: '3'
+volumes:
+  nextcloud_config:
+  nextcloud_data:
+  nextcloud_apps:
+  nextcloud_custom_apps:
+  nextcloud_html:
+  nextcloud_proxymanager_data:
+  nextcloud_proxymanager_letsencrypt:
+  nextcloud_mariadb_database:
 services:
   nextcloud-proxymanager:
     container_name: nextcloud-proxymanager
@@ -11,15 +20,15 @@ services:
     links:
       - nextcloud
     volumes:
-      - ./nextcloud/nginxproxy/data:/data
-      - ./nextcloud/nginxproxy/letsencrypt:/etc/letsencrypt
+      - nextcloud_proxymanager_data:/data
+      - nextcloud_proxymanager_letsencrypt:/etc/letsencrypt
   nextcloud-db:
     container_name: nextcloud-db
     image: mariadb
     restart: always
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW --innodb-file-per-table=1 --skip-innodb-read-only-compressed
     volumes:
-      - ./nextcloud/db:/var/lib/mysql
+      - nextcloud_mariadb_database:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - MYSQL_PASSWORD=${DB_PASSWORD}
@@ -34,16 +43,15 @@ services:
     container_name: nextcloud
     image: nextcloud
     restart: always
-
     links:
       - nextcloud-db
       - nextcloud-redis
     volumes:
-      - ./nextcloud/config:/var/www/html/config
-      - ./nextcloud/nextcloud-data:/var/www/html/data
-      - ./nextcloud/apps:/var/www/html/apps
-      - ./nextcloud/custom_apps:/var/www/html/custom_apps
-      - ./nextcloud/html:/var/www/html
+      - nextcloud_config:/var/www/html/config
+      - nextcloud_data:/var/www/html/data
+      - nextcloud_apps:/var/www/html/apps
+      - nextcloud_custom_apps:/var/www/html/custom_apps
+      - nextcloud_html:/var/www/html
     environment:
       - MYSQL_PASSWORD=${DB_PASSWORD}
       - MYSQL_DATABASE=${NEXTCLOUD_DB_NAME}
@@ -66,11 +74,11 @@ services:
       - nextcloud-db
       - nextcloud-redis
     volumes:
-       - ./nextcloud/config:/var/www/html/config
-       - ./nextcloud/nextcloud-data:/var/www/html/data
-       - ./nextcloud/apps:/var/www/html/apps
-       - ./nextcloud/custom_apps:/var/www/html/custom_apps
-       - ./nextcloud/html:/var/www/html
+       - nextcloud_config:/var/www/html/config
+       - nextcloud_data:/var/www/html/data
+       - nextcloud_apps:/var/www/html/apps
+       - nextcloud_custom_apps:/var/www/html/custom_apps
+       - nextcloud_html:/var/www/html
     environment:
       - MYSQL_PASSWORD=${DB_PASSWORD}
       - MYSQL_DATABASE=${NEXTCLOUD_DB_NAME}
